@@ -85,12 +85,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="chrome-hint">⚠️ 請用 <strong>Chrome 瀏覽器</strong>開啟，建議戴耳機使用效果更好</div>
 
   <div class="apikey-box">
-    <label>🔑 Gemini API Key（免費）</label>
+    <label>🔑 Google Translate API Key</label>
     <div class="apikey-row">
       <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
       <button class="apikey-save" onclick="saveApiKey()">儲存</button>
     </div>
-    <div class="apikey-status" id="apiKeyStatus">輸入 Gemini API Key 即可免費使用</div>
+    <div class="apikey-status" id="apiKeyStatus">輸入 Google Translate API Key（每月50萬字元免費）</div>
   </div>
 
   <div class="join-section" id="joinSection">
@@ -178,7 +178,7 @@ function saveApiKey() {
     setApiStatus('格式錯誤，應以 AIza 開頭', 'err'); return;
   }
   apiKey = val;
-  setApiStatus('✓ Gemini API Key 已儲存，免費使用中', 'ok');
+  setApiStatus('✓ Google Translate API Key 已儲存', 'ok');
   document.getElementById('apiKeyInput').value = '•'.repeat(24);
 }
 function setApiStatus(msg, cls) {
@@ -328,23 +328,21 @@ function stopVoiceAnim() {
   });
 }
 
-// Gemini API 翻譯
+// Google Translate API 翻譯
 async function doTranslate(text) {
   const isZH = myLang === 'zh';
   setMainStatus('翻譯中...', '');
   try {
-    const prompt = isZH
-      ? `請將以下中文翻譯成泰文，只輸出翻譯結果，不要加任何說明或解釋：\n${text}`
-      : `กรุณาแปลข้อความต่อไปนี้เป็นภาษาจีนตัวเต็ม (繁體中文) ตอบเฉพาะคำแปลเท่านั้น ไม่ต้องอธิบาย:\n${text}`;
-
     const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
+          q: text,
+          source: isZH ? 'zh-TW' : 'th',
+          target: isZH ? 'th' : 'zh-TW',
+          format: 'text'
         })
       }
     );
@@ -353,7 +351,7 @@ async function doTranslate(text) {
       throw new Error(err.error?.message || resp.statusText);
     }
     const data = await resp.json();
-    const translated = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+    const translated = data.data?.translations?.[0]?.translatedText || '';
 
     document.getElementById('myBubble').innerHTML =
       `<div class="bubble-orig">${esc(text)}</div><div class="bubble-trans">${esc(translated)}</div>`;
