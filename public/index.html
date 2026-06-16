@@ -11,15 +11,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .top-bar{text-align:center;margin-bottom:20px;}
 .top-bar h1{font-size:20px;font-weight:700;color:#1a1a1a;}
 .top-bar p{font-size:12px;color:#aaa;margin-top:3px;}
-.apikey-box{background:#f8fff8;border:1.5px solid #c8e6c9;border-radius:14px;padding:14px;margin-bottom:18px;}
-.apikey-box label{font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:6px;}
-.apikey-row{display:flex;gap:6px;}
-.apikey-row input{flex:1;font-size:13px;padding:8px 12px;border-radius:10px;border:1.5px solid #c8e6c9;background:white;color:#1a1a1a;font-family:monospace;}
-.apikey-row input:focus{outline:none;border-color:#4CAF50;}
-.apikey-save{padding:8px 14px;border-radius:10px;border:none;background:#4CAF50;color:white;font-size:13px;font-weight:600;cursor:pointer;}
-.apikey-status{font-size:11px;margin-top:5px;color:#aaa;min-height:14px;}
-.apikey-status.ok{color:#1D9E75;}
-.apikey-status.err{color:#E24B4A;}
 .join-section{display:flex;flex-direction:column;gap:14px;}
 .join-title{font-size:13px;font-weight:600;color:#555;text-align:center;}
 .lang-select{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -82,16 +73,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <p>戴上耳機 · 自動聆聽 · 說話即翻譯</p>
   </div>
 
-  <div class="chrome-hint">⚠️ 請用 <strong>Chrome 瀏覽器</strong>開啟，建議戴耳機使用效果更好</div>
-
-  <div class="apikey-box">
-    <label>🔑 Google Translate API Key</label>
-    <div class="apikey-row">
-      <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
-      <button class="apikey-save" onclick="saveApiKey()">儲存</button>
-    </div>
-    <div class="apikey-status" id="apiKeyStatus">輸入 Google Translate API Key（每月50萬字元免費）</div>
-  </div>
+  <div class="chrome-hint">⚠️ 請用 <strong>Chrome 瀏覽器</strong>開啟，建議戴耳機使用</div>
 
   <div class="join-section" id="joinSection">
     <div class="join-title">選擇你的語言</div>
@@ -113,7 +95,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="join-btn" onclick="joinRoom()">加入</button>
     </div>
     <button class="gen-btn" onclick="genRoom()">🎲 隨機產生房間號碼</button>
-    <div class="join-status" id="joinStatus">請選擇語言並輸入房間號碼</div>
+    <div class="join-status" id="joinStatus">選擇語言後輸入房間號碼，完全免費！</div>
   </div>
 
   <div class="main-section" id="mainSection">
@@ -137,7 +119,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="panel-name" id="myName">我說中文</div>
         <span class="auto-badge">自動聆聽</span>
       </div>
-      <div class="voice-indicator" id="voiceBar">
+      <div class="voice-indicator">
         <div class="bar" id="b1" style="height:6px"></div>
         <div class="bar" id="b2" style="height:10px"></div>
         <div class="bar" id="b3" style="height:16px"></div>
@@ -167,251 +149,221 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let myLang = 'zh', ws = null, recog = null;
-let isListening = false, silTimer = null, finalTx = '';
-let histArr = [], roomId = '', apiKey = '';
-let animFrame = null, isSpeaking = false;
-
-function saveApiKey() {
-  const val = document.getElementById('apiKeyInput').value.trim();
-  if (!val.startsWith('AIza')) {
-    setApiStatus('格式錯誤，應以 AIza 開頭', 'err'); return;
-  }
-  apiKey = val;
-  setApiStatus('✓ Google Translate API Key 已儲存', 'ok');
-  document.getElementById('apiKeyInput').value = '•'.repeat(24);
-}
-function setApiStatus(msg, cls) {
-  const el = document.getElementById('apiKeyStatus');
-  el.textContent = msg;
-  el.className = 'apikey-status' + (cls ? ' ' + cls : '');
-}
+let myLang='zh', ws=null, recog=null;
+let isListening=false, silTimer=null, finalTx='';
+let histArr=[], roomId='', animFrame=null, isSpeaking=false;
 
 function selectLang(lang) {
-  myLang = lang;
-  document.getElementById('cardZH').className = 'lang-card' + (lang==='zh' ? ' selected' : '');
-  document.getElementById('cardTH').className = 'lang-card' + (lang==='th' ? ' selected' : '');
+  myLang=lang;
+  document.getElementById('cardZH').className='lang-card'+(lang==='zh'?' selected':'');
+  document.getElementById('cardTH').className='lang-card'+(lang==='th'?' selected':'');
 }
 
 function genRoom() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  document.getElementById('roomInput').value = code;
-  setJoinStatus('房間號碼已產生！傳給對方一起加入', '');
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='';
+  for(let i=0;i<4;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  document.getElementById('roomInput').value=code;
+  setJoinStatus('房間號碼已產生！傳給對方一起加入','');
 }
 
 function joinRoom() {
-  const code = document.getElementById('roomInput').value.trim().toUpperCase();
-  if (code.length < 2) { setJoinStatus('請輸入至少2位房間號碼', 'err'); return; }
-  if (!SR) { setJoinStatus('請使用 Chrome 瀏覽器', 'err'); return; }
-  if (!apiKey) { setJoinStatus('請先輸入並儲存 Gemini API Key', 'err'); return; }
-  roomId = code;
+  const code=document.getElementById('roomInput').value.trim().toUpperCase();
+  if(code.length<2){setJoinStatus('請輸入至少2位房間號碼','err');return;}
+  if(!SR){setJoinStatus('請使用 Chrome 瀏覽器','err');return;}
+  roomId=code;
   connectWS();
 }
 
 function connectWS() {
-  setJoinStatus('連線中...', '');
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}`);
-  ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'join', room: roomId, lang: myLang }));
+  setJoinStatus('連線中...','');
+  const proto=location.protocol==='https:'?'wss':'ws';
+  ws=new WebSocket(`${proto}://${location.host}`);
+  ws.onopen=()=>{
+    ws.send(JSON.stringify({type:'join',room:roomId,lang:myLang}));
     showMain();
     startAutoListen();
   };
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    if (msg.type === 'room_info') {
-      const ok = msg.count >= 2;
-      document.getElementById('onlineDot').className = 'dot' + (ok ? ' on' : '');
-      document.getElementById('onlineCount').textContent = ok ? `${msg.count} 人已連線 ✓` : '等待對方加入...';
+  ws.onmessage=(e)=>{
+    const msg=JSON.parse(e.data);
+    if(msg.type==='room_info'){
+      const ok=msg.count>=2;
+      document.getElementById('onlineDot').className='dot'+(ok?' on':'');
+      document.getElementById('onlineCount').textContent=ok?`${msg.count} 人已連線 ✓`:'等待對方加入...';
     }
-    if (msg.type === 'interim') {
-      document.getElementById('theirBubble').innerHTML = `<div class="bubble-interim">💬 ${esc(msg.text)}</div>`;
+    if(msg.type==='interim'){
+      document.getElementById('theirBubble').innerHTML=`<div class="bubble-interim">💬 ${esc(msg.text)}</div>`;
     }
-    if (msg.type === 'translation') {
-      document.getElementById('theirBubble').innerHTML =
+    if(msg.type==='translation'){
+      document.getElementById('theirBubble').innerHTML=
         `<div class="bubble-orig">${esc(msg.original)}</div><div class="bubble-trans">${esc(msg.translated)}</div>`;
-      speak(msg.translated, msg.from === 'zh' ? 'th-TH' : 'zh-TW');
-      addHist(msg.from === 'zh' ? '中文→泰文' : '泰文→中文', msg.original, msg.translated);
-      setMainStatus('✓ 收到翻譯', 'ok');
-      setTimeout(() => setMainStatus(''), 2000);
+      speak(msg.translated, msg.from==='zh'?'th':'zh-TW');
+      addHist(msg.from==='zh'?'中文→泰文':'泰文→中文', msg.original, msg.translated);
+      setMainStatus('✓ 收到翻譯','ok');
+      setTimeout(()=>setMainStatus(''),2000);
     }
   };
-  ws.onclose = () => setMainStatus('連線中斷，請重新整理', 'err');
-  ws.onerror = () => setJoinStatus('連線失敗，請重試', 'err');
+  ws.onclose=()=>setMainStatus('連線中斷，請重新整理','err');
+  ws.onerror=()=>setJoinStatus('連線失敗，請重試','err');
 }
 
 function showMain() {
-  document.getElementById('joinSection').style.display = 'none';
-  document.getElementById('mainSection').style.display = 'flex';
-  document.getElementById('roomDisplay').textContent = roomId;
-  const isZH = myLang === 'zh';
-  document.getElementById('myFlag').textContent = isZH ? '🇹🇼' : '🇹🇭';
-  document.getElementById('myName').textContent = isZH ? '我說中文（自動聆聽）' : 'ฉันพูดภาษาไทย（อัตโนมัติ）';
-  document.getElementById('theirFlag').textContent = isZH ? '🇹🇭' : '🇹🇼';
-  document.getElementById('theirName').textContent = isZH ? '對方說泰文' : '對方說中文';
+  document.getElementById('joinSection').style.display='none';
+  document.getElementById('mainSection').style.display='flex';
+  document.getElementById('roomDisplay').textContent=roomId;
+  const isZH=myLang==='zh';
+  document.getElementById('myFlag').textContent=isZH?'🇹🇼':'🇹🇭';
+  document.getElementById('myName').textContent=isZH?'我說中文（自動聆聽）':'ฉันพูดภาษาไทย（อัตโนมัติ）';
+  document.getElementById('theirFlag').textContent=isZH?'🇹🇭':'🇹🇼';
+  document.getElementById('theirName').textContent=isZH?'對方說泰文':'對方說中文';
 }
 
 function leaveRoom() {
   stopAutoListen();
-  if (ws) { ws.close(); ws = null; }
-  document.getElementById('joinSection').style.display = 'flex';
-  document.getElementById('mainSection').style.display = 'none';
-  document.getElementById('roomInput').value = '';
+  if(ws){ws.close();ws=null;}
+  document.getElementById('joinSection').style.display='flex';
+  document.getElementById('mainSection').style.display='none';
+  document.getElementById('roomInput').value='';
 }
 
 function startAutoListen() {
-  if (!SR) return;
-  finalTx = '';
-  recog = new SR();
-  recog.continuous = true;
-  recog.interimResults = true;
-  recog.lang = myLang === 'zh' ? 'zh-TW' : 'th-TH';
-  recog.onstart = () => {
-    isListening = true;
+  if(!SR)return;
+  finalTx='';
+  recog=new SR();
+  recog.continuous=true;
+  recog.interimResults=true;
+  recog.lang=myLang==='zh'?'zh-TW':'th-TH';
+  recog.onstart=()=>{
+    isListening=true;
     startVoiceAnim();
-    setMainStatus('<span class="rec-badge"><span class="dot-rec"></span>自動聆聽中，請說話...</span>', '');
+    setMainStatus('<span class="rec-badge"><span class="dot-rec"></span>自動聆聽中，請說話...</span>','');
   };
-  recog.onresult = (e) => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) finalTx += e.results[i][0].transcript;
-      else interim += e.results[i][0].transcript;
+  recog.onresult=(e)=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) finalTx+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
     }
-    const display = (finalTx ? esc(finalTx) : '') + (interim ? `<span style="color:#aaa;font-style:italic;"> ${esc(interim)}</span>` : '');
-    document.getElementById('myBubble').innerHTML = `<div class="bubble-orig">${display}</div>`;
-    if (interim && ws && ws.readyState === 1) {
-      ws.send(JSON.stringify({ type: 'interim', text: interim }));
+    const display=(finalTx?esc(finalTx):'')+(interim?`<span style="color:#aaa;font-style:italic;"> ${esc(interim)}</span>`:'');
+    document.getElementById('myBubble').innerHTML=`<div class="bubble-orig">${display}</div>`;
+    if(interim&&ws&&ws.readyState===1){
+      ws.send(JSON.stringify({type:'interim',text:interim}));
     }
-    if (finalTx) {
+    if(finalTx){
       clearTimeout(silTimer);
-      silTimer = setTimeout(() => { if (finalTx.trim()) doTranslate(finalTx.trim()); }, 700);
+      silTimer=setTimeout(()=>{if(finalTx.trim())doTranslate(finalTx.trim());},700);
     }
   };
-  recog.onerror = (e) => {
-    if (e.error === 'no-speech' || e.error === 'aborted') return;
-    setMainStatus('語音錯誤：' + e.error, 'err');
+  recog.onerror=(e)=>{
+    if(e.error==='no-speech'||e.error==='aborted')return;
+    setMainStatus('語音錯誤：'+e.error,'err');
   };
-  recog.onend = () => {
-    if (isListening && !isSpeaking) setTimeout(() => { if (isListening) recog.start(); }, 200);
+  recog.onend=()=>{
+    if(isListening&&!isSpeaking) setTimeout(()=>{if(isListening)recog.start();},200);
   };
   recog.start();
 }
 
 function stopAutoListen() {
-  isListening = false;
+  isListening=false;
   clearTimeout(silTimer);
   stopVoiceAnim();
-  if (recog) { recog.onend = null; try { recog.stop(); } catch(e) {} recog = null; }
+  if(recog){recog.onend=null;try{recog.stop();}catch(e){}recog=null;}
 }
 
 function startVoiceAnim() {
-  const heights = [6,10,18,10,6];
-  function animate() {
-    ['b1','b2','b3','b4','b5'].forEach((id, i) => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.style.height = (isListening ? heights[i] + Math.random() * 14 : heights[i]) + 'px';
-        el.className = 'bar' + (isListening ? ' active' : '');
+  const heights=[6,10,18,10,6];
+  function animate(){
+    ['b1','b2','b3','b4','b5'].forEach((id,i)=>{
+      const el=document.getElementById(id);
+      if(el){
+        el.style.height=(isListening?heights[i]+Math.random()*14:heights[i])+'px';
+        el.className='bar'+(isListening?' active':'');
       }
     });
-    animFrame = requestAnimationFrame(animate);
+    animFrame=requestAnimationFrame(animate);
   }
   animate();
 }
 function stopVoiceAnim() {
-  if (animFrame) cancelAnimationFrame(animFrame);
-  [6,10,16,10,6].forEach((h, i) => {
-    const el = document.getElementById('b'+(i+1));
-    if (el) { el.style.height = h+'px'; el.className = 'bar'; }
+  if(animFrame)cancelAnimationFrame(animFrame);
+  [6,10,16,10,6].forEach((h,i)=>{
+    const el=document.getElementById('b'+(i+1));
+    if(el){el.style.height=h+'px';el.className='bar';}
   });
 }
 
-// Google Translate API 翻譯
+// 翻譯交給伺服器處理，不需要 API Key 在前端
 async function doTranslate(text) {
-  const isZH = myLang === 'zh';
-  setMainStatus('翻譯中...', '');
-  try {
-    const resp = await fetch(
-      `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          q: text,
-          source: isZH ? 'zh-TW' : 'th',
-          target: isZH ? 'th' : 'zh-TW',
-          format: 'text'
-        })
-      }
-    );
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.error?.message || resp.statusText);
-    }
-    const data = await resp.json();
-    const translated = data.data?.translations?.[0]?.translatedText || '';
+  const isZH=myLang==='zh';
+  setMainStatus('翻譯中...','');
+  try{
+    const resp=await fetch('/translate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        text,
+        source:isZH?'zh-TW':'th',
+        target:isZH?'th':'zh-TW'
+      })
+    });
+    const data=await resp.json();
+    if(!resp.ok)throw new Error(data.error||'翻譯失敗');
+    const translated=data.translated||'';
 
-    document.getElementById('myBubble').innerHTML =
+    document.getElementById('myBubble').innerHTML=
       `<div class="bubble-orig">${esc(text)}</div><div class="bubble-trans">${esc(translated)}</div>`;
 
-    if (ws && ws.readyState === 1) {
-      ws.send(JSON.stringify({ type: 'translation', original: text, translated }));
+    if(ws&&ws.readyState===1){
+      ws.send(JSON.stringify({type:'translation',original:text,translated}));
     }
 
-    setMainStatus('✓ 已翻譯並傳送給對方', 'ok');
-    setTimeout(() => setMainStatus('<span class="rec-badge"><span class="dot-rec"></span>自動聆聽中，請說話...</span>', ''), 2000);
-    addHist(isZH ? '中文→泰文' : '泰文→中文', text, translated);
-    finalTx = '';
-    document.getElementById('myBubble').innerHTML = '<span class="ph">繼續說話...</span>';
-
-  } catch(e) {
-    setMainStatus('翻譯失敗：' + e.message, 'err');
-    console.error(e);
+    setMainStatus('✓ 已翻譯並傳送給對方','ok');
+    setTimeout(()=>setMainStatus('<span class="rec-badge"><span class="dot-rec"></span>自動聆聽中，請說話...</span>',''),2000);
+    addHist(isZH?'中文→泰文':'泰文→中文',text,translated);
+    finalTx='';
+    document.getElementById('myBubble').innerHTML='<span class="ph">繼續說話...</span>';
+  }catch(e){
+    setMainStatus('翻譯失敗：'+e.message,'err');
   }
 }
 
-function speak(text, lang) {
-  isSpeaking = true;
-  // 用 Google TTS，不依賴系統語音包，任何裝置都能發音
-  const ttsLang = lang === 'th-TH' ? 'th' : 'zh-TW';
-  const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${ttsLang}&client=tw-ob&q=${encodeURIComponent(text)}`;
-  const audio = new Audio(url);
-  audio.volume = 1;
-  audio.onended = () => { isSpeaking = false; };
-  audio.onerror = () => {
-    // 如果 Google TTS 失敗，退回系統語音
-    isSpeaking = false;
-    if (!window.speechSynthesis) return;
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = lang; utt.volume = 1; utt.rate = 0.92;
-    utt.onend = () => { isSpeaking = false; };
+function speak(text,lang){
+  isSpeaking=true;
+  const ttsLang=lang==='th'||lang==='th-TH'?'th':'zh-TW';
+  const url=`https://translate.google.com/translate_tts?ie=UTF-8&tl=${ttsLang}&client=tw-ob&q=${encodeURIComponent(text)}`;
+  const audio=new Audio(url);
+  audio.volume=1;
+  audio.onended=()=>{isSpeaking=false;};
+  audio.onerror=()=>{
+    isSpeaking=false;
+    if(!window.speechSynthesis)return;
+    const utt=new SpeechSynthesisUtterance(text);
+    utt.lang=lang==='th'?'th-TH':lang;
+    utt.onend=()=>{isSpeaking=false;};
     window.speechSynthesis.speak(utt);
   };
-  audio.play().catch(() => {
-    isSpeaking = false;
-  });
+  audio.play().catch(()=>{isSpeaking=false;});
 }
 
-function addHist(label, orig, trans) {
-  histArr.unshift({ label, orig, trans });
-  if (histArr.length > 30) histArr.pop();
-  document.getElementById('histSec').style.display = '';
-  document.getElementById('histList').innerHTML = histArr.map(h =>
+function addHist(label,orig,trans){
+  histArr.unshift({label,orig,trans});
+  if(histArr.length>30)histArr.pop();
+  document.getElementById('histSec').style.display='';
+  document.getElementById('histList').innerHTML=histArr.map(h=>
     `<div class="hi"><div class="hi-label">${esc(h.label)}</div><div class="hi-orig">${esc(h.orig)}</div><div class="hi-trans">${esc(h.trans)}</div></div>`
   ).join('');
 }
 
-function setJoinStatus(msg, cls) {
-  const el = document.getElementById('joinStatus');
-  el.textContent = msg; el.className = 'join-status' + (cls ? ' ' + cls : '');
+function setJoinStatus(msg,cls){
+  const el=document.getElementById('joinStatus');
+  el.textContent=msg;el.className='join-status'+(cls?' '+cls:'');
 }
-function setMainStatus(msg, cls) {
-  const el = document.getElementById('mainStatus');
-  el.innerHTML = msg; el.className = 'status-bar' + (cls ? ' ' + cls : '');
+function setMainStatus(msg,cls){
+  const el=document.getElementById('mainStatus');
+  el.innerHTML=msg;el.className='status-bar'+(cls?' '+cls:'');
 }
-function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 </script>
 </body>
 </html>
