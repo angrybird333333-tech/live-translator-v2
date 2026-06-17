@@ -74,6 +74,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="chrome-hint">⚠️ 請用 <strong>Chrome 瀏覽器</strong>開啟，建議戴耳機使用</div>
+  <div id="audioUnlock" style="display:none;background:#fff3e0;border:1px solid #ffb74d;border-radius:10px;padding:10px 14px;font-size:13px;color:#e65100;text-align:center;margin-bottom:12px;cursor:pointer;" onclick="unlockAudio()">
+    🔊 點這裡開啟聲音（必須點一下才能聽到翻譯語音）
+  </div>
 
   <div class="join-section" id="joinSection">
     <div class="join-title">選擇你的語言</div>
@@ -207,9 +210,24 @@ function connectWS() {
   ws.onerror=()=>setJoinStatus('連線失敗，請重試','err');
 }
 
+function unlockAudio() {
+  // 播放一段無聲音頻來解鎖瀏覽器音頻限制
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  ctx.resume().then(() => {
+    const buf = ctx.createBuffer(1,1,22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+  });
+  document.getElementById('audioUnlock').style.display = 'none';
+  document.getElementById('audioUnlock').dataset.unlocked = 'true';
+}
+
 function showMain() {
   document.getElementById('joinSection').style.display='none';
   document.getElementById('mainSection').style.display='flex';
+  document.getElementById('audioUnlock').style.display='block';
   document.getElementById('roomDisplay').textContent=roomId;
   const isZH=myLang==='zh';
   document.getElementById('myFlag').textContent=isZH?'🇹🇼':'🇹🇭';
