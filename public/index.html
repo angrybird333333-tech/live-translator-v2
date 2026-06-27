@@ -11,6 +11,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .top-bar{text-align:center;margin-bottom:20px;}
 .top-bar h1{font-size:20px;font-weight:700;color:#1a1a1a;}
 .top-bar p{font-size:12px;color:#aaa;margin-top:3px;}
+.chrome-hint{background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:8px 12px;font-size:11px;color:#7a6000;text-align:center;margin-bottom:14px;}
+#audioUnlock{display:none;background:#fff3e0;border:1px solid #ffb74d;border-radius:10px;padding:12px 14px;font-size:13px;font-weight:700;color:#e65100;text-align:center;margin-bottom:12px;cursor:pointer;}
+#audioUnlock.ok{background:#e8f5e9;color:#2e7d32;border-color:#81c784;cursor:default;}
+#audioUnlock.fail{background:#ffebee;color:#c62828;border-color:#ef9a9a;}
 .join-section{display:flex;flex-direction:column;gap:14px;}
 .join-title{font-size:13px;font-weight:600;color:#555;text-align:center;}
 .lang-select{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -63,7 +67,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .hi-label{font-size:10px;color:#ccc;margin-bottom:1px;}
 .hi-orig{font-size:11px;color:#aaa;}
 .hi-trans{font-size:13px;color:#1a1a1a;font-weight:600;}
-.chrome-hint{background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:8px 12px;font-size:11px;color:#7a6000;text-align:center;margin-bottom:14px;}
+.test-btn{font-size:11px;color:#378ADD;background:none;border:1px solid #378ADD;border-radius:8px;padding:4px 10px;cursor:pointer;margin-top:6px;}
 </style>
 </head>
 <body>
@@ -74,9 +78,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="chrome-hint">⚠️ 請用 <strong>Chrome 瀏覽器</strong>開啟，建議戴耳機使用</div>
-  <div id="audioUnlock" style="display:none;background:#fff3e0;border:1px solid #ffb74d;border-radius:10px;padding:10px 14px;font-size:13px;color:#e65100;text-align:center;margin-bottom:12px;cursor:pointer;" onclick="unlockAudio()">
-    🔊 點這裡開啟聲音（必須點一下才能聽到翻譯語音）
-  </div>
+  <div id="audioUnlock" onclick="unlockAudio()">🔊 點這裡開啟聲音（進房間前必須先點）</div>
 
   <div class="join-section" id="joinSection">
     <div class="join-title">選擇你的語言</div>
@@ -98,7 +100,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="join-btn" onclick="joinRoom()">加入</button>
     </div>
     <button class="gen-btn" onclick="genRoom()">🎲 隨機產生房間號碼</button>
-    <div class="join-status" id="joinStatus">選擇語言後輸入房間號碼，完全免費！</div>
+    <div class="join-status" id="joinStatus">請先點上方解鎖聲音，再選語言加入房間</div>
   </div>
 
   <div class="main-section" id="mainSection">
@@ -139,6 +141,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="panel-hint">即時翻譯</div>
       </div>
       <div class="bubble" id="theirBubble"><span class="ph">等待對方說話...</span></div>
+      <button class="test-btn" onclick="testPlayback()">🔊 測試播放聲音</button>
     </div>
 
     <div class="status-bar" id="mainStatus"></div>
@@ -150,11 +153,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- 固定在 DOM 上的真實 audio 標籤，iOS 對這種元素的後續 .play() 較為寬容 -->
+<audio id="ttsPlayer" playsinline></audio>
+
 <script>
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let myLang='zh', ws=null, recog=null;
 let isListening=false, silTimer=null, finalTx='';
 let histArr=[], roomId='', animFrame=null, isSpeaking=false;
+let audioUnlocked=false;
+const player = document.getElementById('ttsPlayer');
+
+function unlockAudio() {
+  const el = document.getElementById('audioUnlock');
+  player.src = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=' + encodeURIComponent('已開啟');
+  player.play().then(() => {
+    audioUnlocked = true;
+    el.textContent = '✓ 聲音已開啟，可以加入房間了';
+    el.className = 'ok';
+  }).catch((e) => {
+    el.textContent = '⚠️ 開啟失敗（' + e.name + '），請再點一次';
+    el.className = 'fail';
+    console.error('unlock error', e);
+  });
+}
+
+function testPlayback() {
+  setMainStatus('測試播放中...', '');
+  player.src = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=' + (myLang==='zh'?'th':'zh-TW') + '&client=tw-ob&q=' + encodeURIComponent(myLang==='zh'?'ทดสอบ':'測試');
+  player.play().then(() => {
+    setMainStatus('✓ 測試播放成功', 'ok');
+  }).catch((e) => {
+    setMainStatus('⚠️ 播放失敗：' + e.name + ' - ' + e.message, 'err');
+  });
+}
 
 function selectLang(lang) {
   myLang=lang;
@@ -174,6 +206,7 @@ function joinRoom() {
   const code=document.getElementById('roomInput').value.trim().toUpperCase();
   if(code.length<2){setJoinStatus('請輸入至少2位房間號碼','err');return;}
   if(!SR){setJoinStatus('請使用 Chrome 瀏覽器','err');return;}
+  if(!audioUnlocked){setJoinStatus('請先點上方「開啟聲音」按鈕','err');return;}
   roomId=code;
   connectWS();
 }
@@ -210,24 +243,10 @@ function connectWS() {
   ws.onerror=()=>setJoinStatus('連線失敗，請重試','err');
 }
 
-function unlockAudio() {
-  // 播放一段無聲音頻來解鎖瀏覽器音頻限制
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  ctx.resume().then(() => {
-    const buf = ctx.createBuffer(1,1,22050);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start(0);
-  });
-  document.getElementById('audioUnlock').style.display = 'none';
-  document.getElementById('audioUnlock').dataset.unlocked = 'true';
-}
-
 function showMain() {
   document.getElementById('joinSection').style.display='none';
   document.getElementById('mainSection').style.display='flex';
-  document.getElementById('audioUnlock').style.display='block';
+  document.getElementById('audioUnlock').style.display='none';
   document.getElementById('roomDisplay').textContent=roomId;
   const isZH=myLang==='zh';
   document.getElementById('myFlag').textContent=isZH?'🇹🇼':'🇹🇭';
@@ -241,6 +260,7 @@ function leaveRoom() {
   if(ws){ws.close();ws=null;}
   document.getElementById('joinSection').style.display='flex';
   document.getElementById('mainSection').style.display='none';
+  document.getElementById('audioUnlock').style.display = audioUnlocked ? 'none' : 'block';
   document.getElementById('roomInput').value='';
 }
 
@@ -311,7 +331,6 @@ function stopVoiceAnim() {
   });
 }
 
-// 翻譯交給伺服器處理，不需要 API Key 在前端
 async function doTranslate(text) {
   const isZH=myLang==='zh';
   setMainStatus('翻譯中...','');
@@ -350,18 +369,20 @@ function speak(text,lang){
   isSpeaking=true;
   const ttsLang=lang==='th'||lang==='th-TH'?'th':'zh-TW';
   const url=`https://translate.google.com/translate_tts?ie=UTF-8&tl=${ttsLang}&client=tw-ob&q=${encodeURIComponent(text)}`;
-  const audio=new Audio(url);
-  audio.volume=1;
-  audio.onended=()=>{isSpeaking=false;};
-  audio.onerror=()=>{
+  player.src = url;
+  player.onended=()=>{isSpeaking=false;};
+  player.play().then(()=>{
+    // 播放成功
+  }).catch((e)=>{
     isSpeaking=false;
-    if(!window.speechSynthesis)return;
-    const utt=new SpeechSynthesisUtterance(text);
-    utt.lang=lang==='th'?'th-TH':lang;
-    utt.onend=()=>{isSpeaking=false;};
-    window.speechSynthesis.speak(utt);
-  };
-  audio.play().catch(()=>{isSpeaking=false;});
+    console.error('speak play error', e);
+    setMainStatus('⚠️ 自動播放被擋（'+e.name+'），請點「測試播放聲音」按鈕','err');
+    if(window.speechSynthesis){
+      const utt=new SpeechSynthesisUtterance(text);
+      utt.lang=ttsLang==='th'?'th-TH':'zh-TW';
+      window.speechSynthesis.speak(utt);
+    }
+  });
 }
 
 function addHist(label,orig,trans){
@@ -382,6 +403,9 @@ function setMainStatus(msg,cls){
   el.innerHTML=msg;el.className='status-bar'+(cls?' '+cls:'');
 }
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// 初次載入顯示解鎖按鈕
+document.getElementById('audioUnlock').style.display='block';
 </script>
 </body>
 </html>
