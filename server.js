@@ -10,7 +10,6 @@ const wss = new WebSocketServer({ server });
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// 翻譯 API（伺服器端處理，不暴露 Key 給前端）
 app.post('/translate', async (req, res) => {
   const { text, source, target } = req.body;
   const apiKey = process.env.GOOGLE_API_KEY;
