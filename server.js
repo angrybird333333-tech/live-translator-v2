@@ -33,6 +33,36 @@ app.post('/translate', async (req, res) => {
   }
 });
 
+// 語音合成（Google Cloud Text-to-Speech），回傳 base64 音檔給前端播放
+app.post('/tts', async (req, res) => {
+  const { text, lang } = req.body;
+  const apiKey = process.env.GOOGLE_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'API Key 未設定' });
+
+  const langCode = lang === 'th' ? 'th-TH' : 'zh-TW';
+  const voiceName = lang === 'th' ? 'th-TH-Standard-A' : 'zh-TW-Standard-A';
+
+  try {
+    const resp = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: { text },
+          voice: { languageCode: langCode, name: voiceName },
+          audioConfig: { audioEncoding: 'MP3' }
+        })
+      }
+    );
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error?.message || 'TTS failed');
+    res.json({ audioContent: data.audioContent });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const rooms = {};
 
 wss.on('connection', (ws) => {
