@@ -164,28 +164,44 @@ let histArr=[], roomId='', animFrame=null, isSpeaking=false;
 let audioUnlocked=false;
 const player = document.getElementById('ttsPlayer');
 
-function unlockAudio() {
+async function unlockAudio() {
   const el = document.getElementById('audioUnlock');
-  player.src = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=' + encodeURIComponent('已開啟');
-  player.play().then(() => {
+  try {
+    const resp = await fetch('/tts', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text: '已開啟', lang: 'zh-TW' })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'TTS failed');
+    player.src = 'data:audio/mp3;base64,' + data.audioContent;
+    await player.play();
     audioUnlocked = true;
     el.textContent = '✓ 聲音已開啟，可以加入房間了';
     el.className = 'ok';
-  }).catch((e) => {
-    el.textContent = '⚠️ 開啟失敗（' + e.name + '），請再點一次';
+  } catch(e) {
+    el.textContent = '⚠️ 開啟失敗（' + e.message + '），請再點一次';
     el.className = 'fail';
     console.error('unlock error', e);
-  });
+  }
 }
 
-function testPlayback() {
+async function testPlayback() {
   setMainStatus('測試播放中...', '');
-  player.src = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=' + (myLang==='zh'?'th':'zh-TW') + '&client=tw-ob&q=' + encodeURIComponent(myLang==='zh'?'ทดสอบ':'測試');
-  player.play().then(() => {
+  try {
+    const resp = await fetch('/tts', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text: myLang==='zh'?'ทดสอบ':'測試', lang: myLang==='zh'?'th':'zh-TW' })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'TTS failed');
+    player.src = 'data:audio/mp3;base64,' + data.audioContent;
+    await player.play();
     setMainStatus('✓ 測試播放成功', 'ok');
-  }).catch((e) => {
-    setMainStatus('⚠️ 播放失敗：' + e.name + ' - ' + e.message, 'err');
-  });
+  } catch(e) {
+    setMainStatus('⚠️ 播放失敗：' + e.message, 'err');
+  }
 }
 
 function selectLang(lang) {
@@ -365,24 +381,30 @@ async function doTranslate(text) {
   }
 }
 
-function speak(text,lang){
+async function speak(text,lang){
   isSpeaking=true;
   const ttsLang=lang==='th'||lang==='th-TH'?'th':'zh-TW';
-  const url=`https://translate.google.com/translate_tts?ie=UTF-8&tl=${ttsLang}&client=tw-ob&q=${encodeURIComponent(text)}`;
-  player.src = url;
-  player.onended=()=>{isSpeaking=false;};
-  player.play().then(()=>{
-    // 播放成功
-  }).catch((e)=>{
+  try {
+    const resp = await fetch('/tts', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text, lang: ttsLang })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'TTS failed');
+    player.src = 'data:audio/mp3;base64,' + data.audioContent;
+    player.onended=()=>{isSpeaking=false;};
+    await player.play();
+  } catch(e) {
     isSpeaking=false;
-    console.error('speak play error', e);
-    setMainStatus('⚠️ 自動播放被擋（'+e.name+'），請點「測試播放聲音」按鈕','err');
+    console.error('speak error', e);
+    setMainStatus('⚠️ 語音播放失敗：'+e.message,'err');
     if(window.speechSynthesis){
       const utt=new SpeechSynthesisUtterance(text);
       utt.lang=ttsLang==='th'?'th-TH':'zh-TW';
       window.speechSynthesis.speak(utt);
     }
-  });
+  }
 }
 
 function addHist(label,orig,trans){
