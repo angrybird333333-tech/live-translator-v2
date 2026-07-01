@@ -1,433 +1,79 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>即時中泰語音翻譯</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#e8f4fd,#f0e8fd);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:20px;}
-.app{background:white;border-radius:24px;padding:28px 22px;max-width:460px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.10);}
-.top-bar{text-align:center;margin-bottom:20px;}
-.top-bar h1{font-size:20px;font-weight:700;color:#1a1a1a;}
-.top-bar p{font-size:12px;color:#aaa;margin-top:3px;}
-.chrome-hint{background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:8px 12px;font-size:11px;color:#7a6000;text-align:center;margin-bottom:14px;}
-#audioUnlock{display:none;background:#fff3e0;border:1px solid #ffb74d;border-radius:10px;padding:12px 14px;font-size:13px;font-weight:700;color:#e65100;text-align:center;margin-bottom:12px;cursor:pointer;}
-#audioUnlock.ok{background:#e8f5e9;color:#2e7d32;border-color:#81c784;cursor:default;}
-#audioUnlock.fail{background:#ffebee;color:#c62828;border-color:#ef9a9a;}
-.join-section{display:flex;flex-direction:column;gap:14px;}
-.join-title{font-size:13px;font-weight:600;color:#555;text-align:center;}
-.lang-select{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.lang-card{border:2px solid #eee;border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;transition:all 0.15s;user-select:none;}
-.lang-card.selected{border-color:#4CAF50;background:#f1fff1;}
-.lang-card .flag{font-size:28px;margin-bottom:4px;}
-.lang-card .name{font-size:13px;font-weight:700;color:#1a1a1a;}
-.lang-card .sub{font-size:11px;color:#aaa;margin-top:2px;}
-.room-row{display:flex;gap:8px;}
-.room-input{flex:1;font-size:20px;padding:10px 14px;border-radius:12px;border:1.5px solid #eee;background:#fafafa;color:#1a1a1a;text-transform:uppercase;letter-spacing:4px;font-weight:800;text-align:center;}
-.room-input:focus{outline:none;border-color:#4CAF50;}
-.join-btn{padding:10px 18px;border-radius:12px;border:none;background:#4CAF50;color:white;font-size:14px;font-weight:700;cursor:pointer;}
-.gen-btn{font-size:12px;color:#4CAF50;background:none;border:none;cursor:pointer;text-align:center;}
-.join-status{text-align:center;font-size:12px;color:#aaa;min-height:16px;}
-.join-status.err{color:#E24B4A;}
-.main-section{display:none;flex-direction:column;gap:12px;}
-.room-badge{display:flex;align-items:center;justify-content:space-between;background:#f5f5f5;border-radius:12px;padding:10px 14px;}
-.room-code{font-size:20px;font-weight:800;color:#1a1a1a;letter-spacing:4px;}
-.room-meta{font-size:11px;color:#aaa;}
-.online-pill{display:flex;align-items:center;gap:5px;font-size:12px;color:#aaa;}
-.dot{width:8px;height:8px;border-radius:50%;background:#ddd;}
-.dot.on{background:#1D9E75;animation:blink 2s infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
-.leave-btn{font-size:12px;color:#aaa;background:none;border:none;cursor:pointer;}
-.voice-indicator{display:flex;justify-content:center;align-items:flex-end;gap:3px;height:32px;margin:4px 0;}
-.bar{width:4px;border-radius:2px;background:#4CAF50;opacity:0.3;}
-.bar.active{opacity:1;}
-.my-panel{background:#f1fff1;border:2px solid #4CAF50;border-radius:16px;padding:16px;}
-.their-panel{background:#fafafa;border:1.5px solid #eee;border-radius:16px;padding:16px;}
-.panel-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
-.panel-flag{font-size:22px;}
-.panel-name{font-size:13px;font-weight:700;color:#1a1a1a;flex:1;}
-.panel-hint{font-size:10px;color:#aaa;}
-.auto-badge{font-size:10px;background:#4CAF50;color:white;border-radius:20px;padding:2px 8px;font-weight:600;}
-.bubble{min-height:56px;word-break:break-word;}
-.bubble-orig{font-size:12px;color:#aaa;font-style:italic;margin-bottom:4px;}
-.bubble-trans{font-size:16px;font-weight:700;color:#1a1a1a;line-height:1.5;}
-.bubble-interim{font-size:14px;color:#aaa;font-style:italic;}
-.ph{font-size:12px;color:#ccc;}
-.status-bar{text-align:center;font-size:12px;color:#aaa;min-height:18px;}
-.status-bar.err{color:#E24B4A;}
-.status-bar.ok{color:#1D9E75;}
-.rec-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:#f1fff1;color:#2e7d32;padding:3px 10px;border-radius:20px;}
-.dot-rec{width:6px;height:6px;border-radius:50%;background:#4CAF50;animation:dotblink 1s infinite;}
-@keyframes dotblink{0%,100%{opacity:1}50%{opacity:0.2}}
-.history{border-top:1px solid #eee;padding-top:12px;margin-top:4px;}
-.history-hd{font-size:11px;color:#ccc;font-weight:600;margin-bottom:8px;}
-.history-list{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;}
-.hi{background:#f9f9f9;border-radius:10px;padding:7px 10px;}
-.hi-label{font-size:10px;color:#ccc;margin-bottom:1px;}
-.hi-orig{font-size:11px;color:#aaa;}
-.hi-trans{font-size:13px;color:#1a1a1a;font-weight:600;}
-.test-btn{font-size:11px;color:#378ADD;background:none;border:1px solid #378ADD;border-radius:8px;padding:4px 10px;cursor:pointer;margin-top:6px;}
-</style>
-</head>
-<body>
-<div class="app">
-  <div class="top-bar">
-    <h1>🎙 即時中泰語音翻譯</h1>
-    <p>戴上耳機 · 自動聆聽 · 說話即翻譯</p>
-  </div>
+const express = require('express');
+const line = require('@line/bot-sdk');
+const axios = require('axios');
 
-  <div class="chrome-hint">⚠️ 請用 <strong>Chrome 瀏覽器</strong>開啟，建議戴耳機使用</div>
-  <div id="audioUnlock" onclick="unlockAudio()">🔊 點這裡開啟聲音（進房間前必須先點）</div>
+const lineConfig = {
+  channelSecret: process.env.LINE_CHANNEL_SECRET,
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+};
 
-  <div class="join-section" id="joinSection">
-    <div class="join-title">選擇你的語言</div>
-    <div class="lang-select">
-      <div class="lang-card selected" id="cardZH" onclick="selectLang('zh')">
-        <div class="flag">🇹🇼</div>
-        <div class="name">我說中文</div>
-        <div class="sub">翻譯成泰文給對方</div>
-      </div>
-      <div class="lang-card" id="cardTH" onclick="selectLang('th')">
-        <div class="flag">🇹🇭</div>
-        <div class="name">ฉันพูดไทย</div>
-        <div class="sub">แปลเป็นจีนให้อีกฝ่าย</div>
-      </div>
-    </div>
-    <div class="join-title">輸入或產生房間號碼</div>
-    <div class="room-row">
-      <input class="room-input" id="roomInput" maxlength="4" placeholder="ABCD" oninput="this.value=this.value.toUpperCase()">
-      <button class="join-btn" onclick="joinRoom()">加入</button>
-    </div>
-    <button class="gen-btn" onclick="genRoom()">🎲 隨機產生房間號碼</button>
-    <div class="join-status" id="joinStatus">請先點上方解鎖聲音，再選語言加入房間</div>
-  </div>
+const lineClient = new line.messagingApi.MessagingApiClient({
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+});
 
-  <div class="main-section" id="mainSection">
-    <div class="room-badge">
-      <div>
-        <div class="room-meta">房間號碼（傳給對方）</div>
-        <div class="room-code" id="roomDisplay">----</div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-        <div class="online-pill">
-          <span class="dot" id="onlineDot"></span>
-          <span id="onlineCount">等待對方...</span>
-        </div>
-        <button class="leave-btn" onclick="leaveRoom()">離開房間</button>
-      </div>
-    </div>
+const app = express();
 
-    <div class="my-panel">
-      <div class="panel-header">
-        <div class="panel-flag" id="myFlag">🇹🇼</div>
-        <div class="panel-name" id="myName">我說中文</div>
-        <span class="auto-badge">自動聆聽</span>
-      </div>
-      <div class="voice-indicator">
-        <div class="bar" id="b1" style="height:6px"></div>
-        <div class="bar" id="b2" style="height:10px"></div>
-        <div class="bar" id="b3" style="height:16px"></div>
-        <div class="bar" id="b4" style="height:10px"></div>
-        <div class="bar" id="b5" style="height:6px"></div>
-      </div>
-      <div class="bubble" id="myBubble"><span class="ph">自動聆聽中，請說話...</span></div>
-    </div>
+app.get('/ping', (req, res) => res.send('pong'));
 
-    <div class="their-panel">
-      <div class="panel-header">
-        <div class="panel-flag" id="theirFlag">🇹🇭</div>
-        <div class="panel-name" id="theirName">對方說泰文</div>
-        <div class="panel-hint">即時翻譯</div>
-      </div>
-      <div class="bubble" id="theirBubble"><span class="ph">等待對方說話...</span></div>
-      <button class="test-btn" onclick="testPlayback()">🔊 測試播放聲音</button>
-    </div>
+app.post('/webhook', line.middleware(lineConfig), async (req, res) => {
+  res.sendStatus(200);
+  const events = req.body.events;
+  await Promise.all(events.map(handleEvent));
+});
 
-    <div class="status-bar" id="mainStatus"></div>
+async function handleEvent(event) {
+  if (event.type !== 'message' || event.message.type !== 'text') return;
 
-    <div class="history" id="histSec" style="display:none;">
-      <div class="history-hd">對話紀錄</div>
-      <div class="history-list" id="histList"></div>
-    </div>
-  </div>
-</div>
+  const userText = event.message.text;
+  const isThai = /[\u0E00-\u0E7F]/.test(userText);
+  const sourceLang = isThai ? 'ไทย' : '中文';
+  const targetLang = isThai ? '繁體中文' : 'ภาษาไทย';
 
-<!-- 固定在 DOM 上的真實 audio 標籤，iOS 對這種元素的後續 .play() 較為寬容 -->
-<audio id="ttsPlayer" playsinline></audio>
-
-<script>
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let myLang='zh', ws=null, recog=null;
-let isListening=false, silTimer=null, finalTx='';
-let histArr=[], roomId='', animFrame=null, isSpeaking=false;
-let audioUnlocked=false;
-const player = document.getElementById('ttsPlayer');
-
-async function unlockAudio() {
-  const el = document.getElementById('audioUnlock');
   try {
-    const resp = await fetch('/tts', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ text: '已開啟', lang: 'zh-TW' })
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || 'TTS failed');
-    player.src = 'data:audio/mp3;base64,' + data.audioContent;
-    await player.play();
-    audioUnlocked = true;
-    el.textContent = '✓ 聲音已開啟，可以加入房間了';
-    el.className = 'ok';
-  } catch(e) {
-    el.textContent = '⚠️ 開啟失敗（' + e.message + '），請再點一次';
-    el.className = 'fail';
-    console.error('unlock error', e);
-  }
-}
-
-async function testPlayback() {
-  setMainStatus('測試播放中...', '');
-  try {
-    const resp = await fetch('/tts', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ text: myLang==='zh'?'ทดสอบ':'測試', lang: myLang==='zh'?'th':'zh-TW' })
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || 'TTS failed');
-    player.src = 'data:audio/mp3;base64,' + data.audioContent;
-    await player.play();
-    setMainStatus('✓ 測試播放成功', 'ok');
-  } catch(e) {
-    setMainStatus('⚠️ 播放失敗：' + e.message, 'err');
-  }
-}
-
-function selectLang(lang) {
-  myLang=lang;
-  document.getElementById('cardZH').className='lang-card'+(lang==='zh'?' selected':'');
-  document.getElementById('cardTH').className='lang-card'+(lang==='th'?' selected':'');
-}
-
-function genRoom() {
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code='';
-  for(let i=0;i<4;i++) code+=chars[Math.floor(Math.random()*chars.length)];
-  document.getElementById('roomInput').value=code;
-  setJoinStatus('房間號碼已產生！傳給對方一起加入','');
-}
-
-function joinRoom() {
-  const code=document.getElementById('roomInput').value.trim().toUpperCase();
-  if(code.length<2){setJoinStatus('請輸入至少2位房間號碼','err');return;}
-  if(!SR){setJoinStatus('請使用 Chrome 瀏覽器','err');return;}
-  if(!audioUnlocked){setJoinStatus('請先點上方「開啟聲音」按鈕','err');return;}
-  roomId=code;
-  connectWS();
-}
-
-function connectWS() {
-  setJoinStatus('連線中...','');
-  const proto=location.protocol==='https:'?'wss':'ws';
-  ws=new WebSocket(`${proto}://${location.host}`);
-  ws.onopen=()=>{
-    ws.send(JSON.stringify({type:'join',room:roomId,lang:myLang}));
-    showMain();
-    startAutoListen();
-  };
-  ws.onmessage=(e)=>{
-    const msg=JSON.parse(e.data);
-    if(msg.type==='room_info'){
-      const ok=msg.count>=2;
-      document.getElementById('onlineDot').className='dot'+(ok?' on':'');
-      document.getElementById('onlineCount').textContent=ok?`${msg.count} 人已連線 ✓`:'等待對方加入...';
-    }
-    if(msg.type==='interim'){
-      document.getElementById('theirBubble').innerHTML=`<div class="bubble-interim">💬 ${esc(msg.text)}</div>`;
-    }
-    if(msg.type==='translation'){
-      document.getElementById('theirBubble').innerHTML=
-        `<div class="bubble-orig">${esc(msg.original)}</div><div class="bubble-trans">${esc(msg.translated)}</div>`;
-      speak(msg.translated, msg.from==='zh'?'th':'zh-TW');
-      addHist(msg.from==='zh'?'中文→泰文':'泰文→中文', msg.original, msg.translated);
-      setMainStatus('✓ 收到翻譯','ok');
-      setTimeout(()=>setMainStatus(''),2000);
-    }
-  };
-  ws.onclose=()=>setMainStatus('連線中斷，請重新整理','err');
-  ws.onerror=()=>setJoinStatus('連線失敗，請重試','err');
-}
-
-function showMain() {
-  document.getElementById('joinSection').style.display='none';
-  document.getElementById('mainSection').style.display='flex';
-  document.getElementById('audioUnlock').style.display='none';
-  document.getElementById('roomDisplay').textContent=roomId;
-  const isZH=myLang==='zh';
-  document.getElementById('myFlag').textContent=isZH?'🇹🇼':'🇹🇭';
-  document.getElementById('myName').textContent=isZH?'我說中文（自動聆聽）':'ฉันพูดภาษาไทย（อัตโนมัติ）';
-  document.getElementById('theirFlag').textContent=isZH?'🇹🇭':'🇹🇼';
-  document.getElementById('theirName').textContent=isZH?'對方說泰文':'對方說中文';
-}
-
-function leaveRoom() {
-  stopAutoListen();
-  if(ws){ws.close();ws=null;}
-  document.getElementById('joinSection').style.display='flex';
-  document.getElementById('mainSection').style.display='none';
-  document.getElementById('audioUnlock').style.display = audioUnlocked ? 'none' : 'block';
-  document.getElementById('roomInput').value='';
-}
-
-function startAutoListen() {
-  if(!SR)return;
-  finalTx='';
-  recog=new SR();
-  recog.continuous=true;
-  recog.interimResults=true;
-  recog.lang=myLang==='zh'?'zh-TW':'th-TH';
-  recog.onstart=()=>{
-    isListening=true;
-    startVoiceAnim();
-    setMainStatus('<span class="rec-badge"><span class="dot-rec"></span>自動聆聽中，請說話...</span>','');
-  };
-  recog.onresult=(e)=>{
-    let interim='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal) finalTx+=e.results[i][0].transcript;
-      else interim+=e.results[i][0].transcript;
-    }
-    const display=(finalTx?esc(finalTx):'')+(interim?`<span style="color:#aaa;font-style:italic;"> ${esc(interim)}</span>`:'');
-    document.getElementById('myBubble').innerHTML=`<div class="bubble-orig">${display}</div>`;
-    if(interim&&ws&&ws.readyState===1){
-      ws.send(JSON.stringify({type:'interim',text:interim}));
-    }
-    if(finalTx){
-      clearTimeout(silTimer);
-      silTimer=setTimeout(()=>{if(finalTx.trim())doTranslate(finalTx.trim());},700);
-    }
-  };
-  recog.onerror=(e)=>{
-    if(e.error==='no-speech'||e.error==='aborted')return;
-    setMainStatus('語音錯誤：'+e.error,'err');
-  };
-  recog.onend=()=>{
-    if(isListening&&!isSpeaking) setTimeout(()=>{if(isListening)recog.start();},200);
-  };
-  recog.start();
-}
-
-function stopAutoListen() {
-  isListening=false;
-  clearTimeout(silTimer);
-  stopVoiceAnim();
-  if(recog){recog.onend=null;try{recog.stop();}catch(e){}recog=null;}
-}
-
-function startVoiceAnim() {
-  const heights=[6,10,18,10,6];
-  function animate(){
-    ['b1','b2','b3','b4','b5'].forEach((id,i)=>{
-      const el=document.getElementById(id);
-      if(el){
-        el.style.height=(isListening?heights[i]+Math.random()*14:heights[i])+'px';
-        el.className='bar'+(isListening?' active':'');
+    const response = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: 'claude-haiku-4-5',
+        max_tokens: 1024,
+        messages: [
+          {
+            role: 'user',
+            content: `請將以下${sourceLang}翻譯成${targetLang}，只輸出翻譯結果，不要加任何說明或解釋：\n${userText}`
+          }
+        ]
+      },
+      {
+        headers: {
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json'
+        }
       }
+    );
+
+    const translated = response.data.content[0].text.trim();
+
+    return lineClient.replyMessage({
+      replyToken: event.replyToken,
+      messages: [{
+        type: 'text',
+        text: `${userText}\n\n📝 ${translated}`
+      }],
     });
-    animFrame=requestAnimationFrame(animate);
-  }
-  animate();
-}
-function stopVoiceAnim() {
-  if(animFrame)cancelAnimationFrame(animFrame);
-  [6,10,16,10,6].forEach((h,i)=>{
-    const el=document.getElementById('b'+(i+1));
-    if(el){el.style.height=h+'px';el.className='bar';}
-  });
-}
 
-async function doTranslate(text) {
-  const isZH=myLang==='zh';
-  setMainStatus('翻譯中...','');
-  try{
-    const resp=await fetch('/translate',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        text,
-        source:isZH?'zh-TW':'th',
-        target:isZH?'th':'zh-TW'
-      })
+  } catch (error) {
+    console.error('翻譯錯誤:', error.message);
+    return lineClient.replyMessage({
+      replyToken: event.replyToken,
+      messages: [{
+        type: 'text',
+        text: '翻譯暫時無法使用，請稍後再試 🙏'
+      }],
     });
-    const data=await resp.json();
-    if(!resp.ok)throw new Error(data.error||'翻譯失敗');
-    const translated=data.translated||'';
-
-    document.getElementById('myBubble').innerHTML=
-      `<div class="bubble-orig">${esc(text)}</div><div class="bubble-trans">${esc(translated)}</div>`;
-
-    if(ws&&ws.readyState===1){
-      ws.send(JSON.stringify({type:'translation',original:text,translated}));
-    }
-
-    setMainStatus('✓ 已翻譯並傳送給對方','ok');
-    setTimeout(()=>setMainStatus('<span class="rec-badge"><span class="dot-rec"></span>自動聆聽中，請說話...</span>',''),2000);
-    addHist(isZH?'中文→泰文':'泰文→中文',text,translated);
-    finalTx='';
-    document.getElementById('myBubble').innerHTML='<span class="ph">繼續說話...</span>';
-  }catch(e){
-    setMainStatus('翻譯失敗：'+e.message,'err');
   }
 }
 
-async function speak(text,lang){
-  isSpeaking=true;
-  const ttsLang=lang==='th'||lang==='th-TH'?'th':'zh-TW';
-  try {
-    const resp = await fetch('/tts', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ text, lang: ttsLang })
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || 'TTS failed');
-    player.src = 'data:audio/mp3;base64,' + data.audioContent;
-    player.onended=()=>{isSpeaking=false;};
-    await player.play();
-  } catch(e) {
-    isSpeaking=false;
-    console.error('speak error', e);
-    setMainStatus('⚠️ 語音播放失敗：'+e.message,'err');
-    if(window.speechSynthesis){
-      const utt=new SpeechSynthesisUtterance(text);
-      utt.lang=ttsLang==='th'?'th-TH':'zh-TW';
-      window.speechSynthesis.speak(utt);
-    }
-  }
-}
-
-function addHist(label,orig,trans){
-  histArr.unshift({label,orig,trans});
-  if(histArr.length>30)histArr.pop();
-  document.getElementById('histSec').style.display='';
-  document.getElementById('histList').innerHTML=histArr.map(h=>
-    `<div class="hi"><div class="hi-label">${esc(h.label)}</div><div class="hi-orig">${esc(h.orig)}</div><div class="hi-trans">${esc(h.trans)}</div></div>`
-  ).join('');
-}
-
-function setJoinStatus(msg,cls){
-  const el=document.getElementById('joinStatus');
-  el.textContent=msg;el.className='join-status'+(cls?' '+cls:'');
-}
-function setMainStatus(msg,cls){
-  const el=document.getElementById('mainStatus');
-  el.innerHTML=msg;el.className='status-bar'+(cls?' '+cls:'');
-}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-// 初次載入顯示解鎖按鈕
-document.getElementById('audioUnlock').style.display='block';
-</script>
-</body>
-</html>
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('Bot running on port', PORT);
+});
